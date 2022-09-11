@@ -1,6 +1,8 @@
 #include "SignatureParams.h"
+#include "SignatureProcess.h"
 #include "CommonUtils.h"
 #include <functional>
+#include <memory>
 
 static void writeHelp()
 {
@@ -50,6 +52,13 @@ int main(int argc, char** argv)
     writeMsg("input: " + params.inputPath);
     writeMsg("output: " + params.outputPath);
     writeMsg("size: " + std::to_string(params.blockSize));
+    auto inProcess = true;
+    auto mainProcess = std::make_unique<SignatureProcess>(params, [&inProcess] { inProcess = false; });
+    mainProcess->start();
+
+    while (inProcess) {
+
+    }
 
     return 0;
 }

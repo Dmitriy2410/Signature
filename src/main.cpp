@@ -20,10 +20,33 @@ static void parseArg(const std::string& arg, const std::string& argValue, const 
     }
 }
 
+static const uint64_t MEGABYTE_MULTIPLIER = 1024 * 1024;
+
 static uint64_t parseBlockSize(const std::string& argValue)
 {
-    // todo: разбор единиц измерения
-    return std::stoull(argValue);
+    static const uint64_t DEFAULT_BLOCK_SIZE = 1 * MEGABYTE_MULTIPLIER; // bytes
+
+    auto unitItr = std::find_if(argValue.begin(), argValue.end(),
+                                [] (auto s)
+    {
+        return !::isdigit(s);
+    });
+    auto unitPos = unitItr - argValue.begin();
+    if (unitPos == 0) {
+        return DEFAULT_BLOCK_SIZE;
+    }
+
+    auto value = std::stoull(argValue.substr(0, unitPos));
+    auto unitStr = argValue.substr(unitPos, std::string::npos);
+
+    if (unitStr == "b") {
+        return value;
+    } else if (unitStr == "kb") {
+        return value * 1024;
+    } else if (unitStr == "Mb") {
+        return value * MEGABYTE_MULTIPLIER;
+    }
+    return 0;
 }
 
 static SignatureParams parseParams(int argc, char** argv)
@@ -39,12 +62,23 @@ static SignatureParams parseParams(int argc, char** argv)
     return params;
 }
 
+static bool checkParam(bool expression, const std::string& errorMsg)
+{
+    if (expression) {
+        writeMsg(errorMsg);
+        writeHelp();
+        return false;
+    }
+    return true;
+}
+
 int main(int argc, char** argv)
 {
     auto params = parseParams(argc, argv);
 
-    if (params.inputPath.empty() || params.outputPath.empty()) {
-        writeHelp();
+    if (!checkParam(params.inputPath.empty(), "Invalid input file path") ||
+            !checkParam(params.outputPath.empty(), "Invalid output file path") ||
+            !checkParam(params.blockSize < 512 || params.blockSize > 10 * MEGABYTE_MULTIPLIER, "Invalid block size")) {
         return -1;
     }
 

@@ -1,17 +1,18 @@
 #include "SignatureParams.h"
-#include "SignatureProcess.h"
+#include "SignatureAlgorithm.h"
 #include "CommonUtils.h"
 #include <functional>
 #include <memory>
 
 static void writeHelp()
 {
-    writeMsg("");
-    writeMsg("Signature - file signature generator");
-    writeMsg("Args:");
-    writeMsg("-i - source file path");
-    writeMsg("-o - output file path");
-    writeMsg("-s - block size (512b - 10Mb)");
+    writeLog("");
+    writeLog("Signature - file signature algorithm");
+    writeLog("Args:");
+    writeLog("-i - source file path");
+    writeLog("-o - output file path");
+    writeLog("-s - block size (512b - 10Mb)");
+    writeLog("-d - Enable debug mode");
 }
 
 static void parseArg(const std::string& arg, const std::string& argValue, const std::string& argName, const std::function<void(const std::string&)>& func) {
@@ -58,6 +59,7 @@ static SignatureParams parseParams(int argc, char** argv)
         parseArg(arg, argValue, "-i", [&params] (auto& argValue) { params.inputPath = argValue; });
         parseArg(arg, argValue, "-o", [&params] (auto& argValue) { params.outputPath = argValue; });
         parseArg(arg, argValue, "-s", [&params] (auto& argValue) { params.blockSize = parseBlockSize(argValue); });
+        parseArg(arg, argValue, "-d", [&params] (auto& argValue) { params.debugMode = argValue == "1"; });
     }
     return params;
 }
@@ -65,7 +67,7 @@ static SignatureParams parseParams(int argc, char** argv)
 static bool checkParam(bool expression, const std::string& errorMsg)
 {
     if (expression) {
-        writeMsg(errorMsg);
+        writeLog(errorMsg);
         writeHelp();
         return false;
     }
@@ -82,17 +84,13 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    writeMsg("Start algorithm");
-    writeMsg("input: " + params.inputPath);
-    writeMsg("output: " + params.outputPath);
-    writeMsg("size: " + std::to_string(params.blockSize));
-    auto inProcess = true;
-    auto mainProcess = std::make_unique<SignatureProcess>(params, [&inProcess] { inProcess = false; });
-    mainProcess->start();
+    writeLog("Start algorithm");
+    writeLog("input: " + params.inputPath);
+    writeLog("output: " + params.outputPath);
+    writeLog("size: " + std::to_string(params.blockSize));
 
-    while (inProcess) {
-
-    }
+    auto alg = std::make_unique<SignatureAlgorithm>(params);
+    alg->start();
 
     return 0;
 }

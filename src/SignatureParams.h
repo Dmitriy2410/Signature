@@ -10,6 +10,7 @@ struct SignatureParams {
 
     // settings
     bool debugMode = false;
+    int threadCount = 15;
 };
 
 #endif // SIGNATUREPARAMS_H

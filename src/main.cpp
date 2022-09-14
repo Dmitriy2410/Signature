@@ -12,6 +12,7 @@ static void writeHelp()
     writeLog("-i - source file path");
     writeLog("-o - output file path");
     writeLog("-s - block size (512b - 10Mb)");
+    writeLog("-t - thread count (Default: 15)");
     writeLog("-d - Enable debug mode");
 }
 

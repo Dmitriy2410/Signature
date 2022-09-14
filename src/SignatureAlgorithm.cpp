@@ -7,6 +7,8 @@
 #include <unordered_map>
 #include <thread>
 #include <cassert>
+#include <boost/asio/thread_pool.hpp>
+#include <boost/asio.hpp>
 
 #include <ctime>
 
@@ -45,24 +47,16 @@ void SignatureAlgorithm::start()
     uint64_t bufferCount = 1024.0 * 1024.0 * 1024.0 * 0.9 / params.blockSize;
     DataBufferStorage storage(params.blockSize, bufferCount);
 
-    auto md5Func = [&storage, &outputFile, this] (size_t bufferId) {
-        std::string md5Result;
-        auto funcDuration = Measurement::measureFunc([&storage, &outputFile, &bufferId, &md5Result, this]
-        {
-            md5Result = md5(storage.getBuffer(bufferId)->data());
-            outputFile << md5Result << "\n";
-        });
-
-        writeDebug("MD5: Block: " + std::to_string(bufferId) + " result: " + md5Result + " time: " + std::to_string(funcDuration));
-    };
-
-    std::vector<std::thread> workers;
+    boost::asio::thread_pool pool(params.threadCount);
 
     uint64_t currentBlock = 0;
     uint64_t totalSize = 0;
+    clock_t prevReadClock = clock();
     while (!inputFile.eof()) {
         auto [dataBuffer, bufferId] = storage.getFreeBuffer();
         uint64_t readSize;
+        auto prevStartReadTime = clock() - prevReadClock;
+        prevReadClock = clock();
         auto readDuration = Measurement::measureFunc([&readSize, &inputFile, &dataBuffer, this]
         {
             readSize = inputFile.read(dataBuffer->data(), params.blockSize).gcount();
@@ -74,17 +68,25 @@ void SignatureAlgorithm::start()
         writeDebug("Block: " + std::to_string(currentBlock++) +
                    " read: " + std::to_string(readSize) +
                    " total: " + std::to_string(totalSize / (1024.0 * 1024.0 * 1024.0)) + "Gb" +
-                   " time: " + std::to_string(readDuration));
-        workers.emplace_back(std::thread(md5Func, bufferId));
+                   " time: " + std::to_string(readDuration) +
+                   " Prev start read time: " + std::to_string(prevStartReadTime));
+
+        boost::asio::post(pool, [&storage, &outputFile, this, bufferId] {
+            std::string md5Result;
+            auto funcDuration = Measurement::measureFunc([&storage, &outputFile, &bufferId, &md5Result, this]
+            {
+                md5Result = md5(storage.getBuffer(bufferId)->data());
+                outputFile << md5Result << "\n";
+            });
+
+            writeDebug("MD5: Block: " + std::to_string(bufferId) + " result: " + md5Result + " time: " + std::to_string(funcDuration));
+        });
     }
 
     inputFile.close();
     outputFile.close();
 
-    writeLog("workers: " + std::to_string(workers.size()));
-    for (auto &worker : workers) {
-        worker.join();
-    }
+    pool.join();
 
     finish();
 }

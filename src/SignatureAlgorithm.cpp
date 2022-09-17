@@ -25,7 +25,8 @@ public:
 
 SignatureAlgorithm::SignatureAlgorithm(const SignatureParams &params) :
     params(params),
-    debugMode(params.debugMode)
+    debugMode(params.debugMode),
+    errorOccured(false)
 {
 
 }
@@ -74,6 +75,9 @@ void SignatureAlgorithm::start()
     clock_t prevReadClock = clock();
     std::map<uint64_t, uint64_t> differences;
     while (!inputFile.eof()) {
+        if (errorOccured) {
+            break;
+        }
         auto [dataBuffer, bufferId] = storage.getFreeBuffer();
         uint64_t readSize;
         auto prevStartReadTime = clock() - prevReadClock;
@@ -85,6 +89,10 @@ void SignatureAlgorithm::start()
                 std::fill(dataBuffer->begin() + readSize, dataBuffer->end(), 0);
             }
         });
+        if ((inputFile.rdstate() & std::fstream::failbit ) != 0) {
+            Logger::writeLog("Output error occured");
+            errorOccured = true;
+        }
         totalSize += readSize;
         if (debugMode) {
             Logger::writeLog("Block: " + std::to_string(currentBlock) +
@@ -94,6 +102,9 @@ void SignatureAlgorithm::start()
                              " Prev start read time: " + std::to_string(prevStartReadTime));
         }
         boost::asio::post(pool, [&storage, &outputModule, this, bufferId, &differences, currentBlock] {
+            if (errorOccured) {
+                return;
+            }
             increaseThreadCount();
             updateMaxThreadCount();
             std::string md5Result;
@@ -102,6 +113,9 @@ void SignatureAlgorithm::start()
                 md5Result = md5(storage.getBuffer(bufferId)->data());
                 outputModule.writeStr(currentBlock, std::move(md5Result));
             });
+            if (outputModule.isErrorOccured()) {
+                errorOccured = true;
+            }
 
             if (debugMode) {
                 Logger::writeLog("MD5: Block: " + std::to_string(bufferId) +
@@ -126,8 +140,9 @@ void SignatureAlgorithm::start()
         Logger::writeLog(" Block difference: " + std::to_string(itr.first) + " - " + std::to_string(itr.second));
     });
     Logger::writeLog("Max threads: " + std::to_string(maxThreadCount));
+    Logger::writeLog("Max output size: " + std::to_string(outputModule.getMaxMapSize()));
 
-    finish();
+    finish(!errorOccured);
 }
 
 void SignatureAlgorithm::finish(bool success)

@@ -20,6 +20,7 @@ private:
     const SignatureParams params;
     const std::atomic_bool debugMode;
     std::vector<std::string> md5Collection;
+    std::atomic_bool errorOccured;
 
     void finish(bool success = true);
 };

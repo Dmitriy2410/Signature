@@ -5,24 +5,28 @@
 #include <fstream>
 #include <mutex>
 #include <map>
-#include <atomic>
 
 class OutputModule
 {
 public:
-    OutputModule(bool debugMode = false);
+    OutputModule();
     bool init(const std::string& outputPath);
 
     void writeStr(uint64_t bufferId, const std::string& str);
 
     void close();
 
+    size_t getMaxMapSize() const;
+
+    bool isErrorOccured() const;
+
 private:
-    const std::atomic_bool debugMode;
     std::ofstream outputFile;
     uint64_t expectedId;
     static std::mutex outputMutex;
     std::map<uint64_t, std::string> outOfOrderStrings;
+    size_t maxMapSize;
+    bool errorOccured;
 
     void writeOutput(const std::string &str);
 

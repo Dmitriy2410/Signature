@@ -23,14 +23,6 @@ public:
     }
 };
 
-SignatureAlgorithm::SignatureAlgorithm(const SignatureParams &params) :
-    params(params),
-    debugMode(params.debugMode),
-    errorOccured(false)
-{
-
-}
-
 std::mutex diffMutex;
 std::mutex threadCountMutex;
 
@@ -50,6 +42,15 @@ static void updateMaxThreadCount() {
     maxThreadCount = std::max(threadCount, maxThreadCount);
 }
 
+
+SignatureAlgorithm::SignatureAlgorithm(const SignatureParams &params) :
+    params(params),
+    debugMode(params.debugMode),
+    errorOccured(false)
+{
+
+}
+
 void SignatureAlgorithm::start()
 {
     std::ifstream inputFile(params.inputPath, std::ios::in|std::ios::binary);
@@ -64,9 +65,12 @@ void SignatureAlgorithm::start()
         return;
     }
 
-//    uint64_t bufferCount = 1024.0 * 1024.0 * 1024.0 * 0.9 / params.blockSize;
-    uint64_t bufferCount = 1800;
-    DataBufferStorage storage(params.blockSize, bufferCount);
+    uint64_t initialBufferCount = params.threadCount;
+
+    if (debugMode) {
+        Logger::writeLog("DataBufferStorage: Init: " + std::to_string(initialBufferCount) + " buffers with " + std::to_string(params.blockSize) + " bytes");
+    }
+    DataBufferStorage storage(params.blockSize, initialBufferCount);
 
     boost::asio::thread_pool pool(params.threadCount);
 
@@ -89,12 +93,13 @@ void SignatureAlgorithm::start()
                 std::fill(dataBuffer->begin() + readSize, dataBuffer->end(), 0);
             }
         });
-        if ((inputFile.rdstate() & std::fstream::failbit ) != 0) {
-            Logger::writeLog("Output error occured");
+        if (readSize == 0) {
+            Logger::writeLog("Input error occured");
             errorOccured = true;
+            break;
         }
-        totalSize += readSize;
         if (debugMode) {
+            totalSize += readSize;
             Logger::writeLog("Block: " + std::to_string(currentBlock) +
                              " read: " + std::to_string(readSize) +
                              " total: " + std::to_string(totalSize / (1024.0 * 1024.0 * 1024.0)) + "Gb" +
@@ -105,12 +110,15 @@ void SignatureAlgorithm::start()
             if (errorOccured) {
                 return;
             }
-            increaseThreadCount();
-            updateMaxThreadCount();
+            if (debugMode) {
+                increaseThreadCount();
+                updateMaxThreadCount();
+            }
             std::string md5Result;
             auto funcDuration = Measurement::measureFunc([&storage, &outputModule, &bufferId, &md5Result, &currentBlock, this]
             {
                 md5Result = md5(storage.getBuffer(bufferId)->data());
+                storage.releaseBuffer(bufferId);
                 outputModule.writeStr(currentBlock, std::move(md5Result));
             });
             if (outputModule.isErrorOccured()) {
@@ -121,10 +129,11 @@ void SignatureAlgorithm::start()
                 Logger::writeLog("MD5: Block: " + std::to_string(bufferId) +
                                  " result: " + md5Result +
                                  " time: " + std::to_string(funcDuration));
+
+                std::scoped_lock dm(diffMutex);
+                differences[storage.getIdDiff()]++;
+                decreaseThreadCount();
             }
-            std::scoped_lock dm(diffMutex);
-            differences[storage.getIdDiff(bufferId)]++;
-            decreaseThreadCount();
         });
         ++currentBlock;
     }
@@ -134,13 +143,16 @@ void SignatureAlgorithm::start()
 
     pool.join();
 
-    std::for_each(differences.begin(), differences.end(),
-                  [] (auto &itr)
-    {
-        Logger::writeLog(" Block difference: " + std::to_string(itr.first) + " - " + std::to_string(itr.second));
-    });
-    Logger::writeLog("Max threads: " + std::to_string(maxThreadCount));
-    Logger::writeLog("Max output size: " + std::to_string(outputModule.getMaxMapSize()));
+    if (debugMode) {
+        std::for_each(differences.begin(), differences.end(),
+                      [] (auto &itr)
+        {
+            Logger::writeLog(" Block difference: " + std::to_string(itr.first) + " - " + std::to_string(itr.second));
+        });
+        Logger::writeLog("Max threads: " + std::to_string(maxThreadCount));
+        Logger::writeLog("Max output size: " + std::to_string(outputModule.getMaxMapSize()));
+        Logger::writeLog("All blocks count: " + std::to_string(currentBlock));
+    }
 
     finish(!errorOccured);
 }

@@ -1,5 +1,6 @@
 #include "OutputModule.h"
 #include "Logger.h"
+#include <cstring>
 
 std::mutex OutputModule::outputMutex;
 OutputModule::OutputModule() :
@@ -56,8 +57,8 @@ void OutputModule::writeOutput(const std::string &str)
 {
     outputFile << str << "\n";
     ++expectedId;
-    if ((outputFile.rdstate() & std::fstream::failbit ) != 0) {
-        Logger::writeLog("Output error occured");
+    if (outputFile.fail()) {
+        Logger::writeLog("OutputModule: Output error occured: " + std::string(strerror(errno)));
         errorOccured = true;
     }
 }

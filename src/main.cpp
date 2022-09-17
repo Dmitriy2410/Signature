@@ -75,13 +75,17 @@ static bool checkParam(bool expression, const std::string& errorMsg)
     return true;
 }
 
+static const int MAX_THREAD_COUNT = 100;
+
 int main(int argc, char** argv)
 {
     auto params = parseParams(argc, argv);
 
     if (!checkParam(params.inputPath.empty(), "Invalid input file path") ||
             !checkParam(params.outputPath.empty(), "Invalid output file path") ||
-            !checkParam(params.blockSize < 512 || params.blockSize > 10 * MEGABYTE_MULTIPLIER, "Invalid block size")) {
+            !checkParam(params.blockSize < 512 || params.blockSize > 10 * MEGABYTE_MULTIPLIER, "Invalid block size") ||
+            !checkParam(params.threadCount < 1 || params.threadCount > MAX_THREAD_COUNT, "Invalid thread count (expected 1 - " + std::to_string(MAX_THREAD_COUNT) + ")"))
+    {
         return -1;
     }
 

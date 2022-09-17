@@ -6,20 +6,22 @@ CONFIG -= qt
 DESTDIR = bin
 
 SOURCES += \
-        src/CommonUtils.cpp \
         src/DataBufferStorage.cpp \
+        src/Logger.cpp \
         src/MD5.cpp \
+        src/OutputModule.cpp \
         src/SignatureAlgorithm.cpp \
         src/main.cpp
 
 HEADERS += \
-    src/CommonUtils.h \
     src/DataBufferStorage.h \
+    src/Logger.h \
     src/MD5.h \
+    src/OutputModule.h \
     src/SignatureAlgorithm.h \
     src/SignatureParams.h
 
 INCLUDEPATH += src/
 
-QMAKE_CXXFLAGS += -std=c++0x -pthread
+QMAKE_CXXFLAGS += -pthread
 LIBS += -pthread

@@ -5,6 +5,7 @@
 #include <functional>
 #include <vector>
 #include <mutex>
+#include <atomic>
 
 class SignatureAlgorithm
 {
@@ -17,12 +18,10 @@ public:
 
 private:
     const SignatureParams params;
+    const std::atomic_bool debugMode;
     std::vector<std::string> md5Collection;
-    static std::mutex debugMutex;
 
     void finish(bool success = true);
-
-    void writeDebug(const std::string& msg);
 };
 
 #endif // MAINPROCESS_H

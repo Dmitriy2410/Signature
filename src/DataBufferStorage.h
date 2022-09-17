@@ -4,6 +4,7 @@
 #include <mutex>
 #include <vector>
 #include <memory>
+#include <atomic>
 
 class DataBufferStorage {
 public:
@@ -15,12 +16,14 @@ public:
     std::pair<SingleBufferPtr,uint64_t> getFreeBuffer();
     SingleBufferPtr getBuffer(uint64_t id) const;
 
+    uint64_t getIdDiff(uint64_t id) const;
+
 private:
     const uint64_t singleBufferSize;
     const uint64_t maxBufferCount;
     std::vector<SingleBufferPtr> buffer;
     static std::mutex bufferMutex;
-    uint64_t freeBufferId;
+    std::atomic_uint64_t freeBufferId;
 
     void rotateFreeBufferId();
 };

@@ -1,19 +1,19 @@
 #include "SignatureParams.h"
 #include "SignatureAlgorithm.h"
-#include "CommonUtils.h"
+#include "Logger.h"
 #include <functional>
 #include <memory>
 
 static void writeHelp()
 {
-    writeLog("");
-    writeLog("Signature - file signature algorithm");
-    writeLog("Args:");
-    writeLog("-i - source file path");
-    writeLog("-o - output file path");
-    writeLog("-s - block size (512b - 10Mb)");
-    writeLog("-t - thread count (Default: 15)");
-    writeLog("-d - Enable debug mode");
+    Logger::writeLog("");
+    Logger::writeLog("Signature - file signature algorithm");
+    Logger::writeLog("Args:");
+    Logger::writeLog("-i - source file path");
+    Logger::writeLog("-o - output file path");
+    Logger::writeLog("-s - block size (512b - 10Mb)");
+    Logger::writeLog("-t - thread count (Default: 15)");
+    Logger::writeLog("-d - Enable debug mode");
 }
 
 static void parseArg(const std::string& arg, const std::string& argValue, const std::string& argName, const std::function<void(const std::string&)>& func) {
@@ -68,7 +68,7 @@ static SignatureParams parseParams(int argc, char** argv)
 static bool checkParam(bool expression, const std::string& errorMsg)
 {
     if (expression) {
-        writeLog(errorMsg);
+        Logger::writeLog(errorMsg);
         writeHelp();
         return false;
     }
@@ -85,10 +85,10 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    writeLog("Start algorithm");
-    writeLog("input: " + params.inputPath);
-    writeLog("output: " + params.outputPath);
-    writeLog("size: " + std::to_string(params.blockSize));
+    Logger::writeLog("Start algorithm");
+    Logger::writeLog("input: " + params.inputPath);
+    Logger::writeLog("output: " + params.outputPath);
+    Logger::writeLog("block size: " + std::to_string(params.blockSize));
 
     auto alg = std::make_unique<SignatureAlgorithm>(params);
     alg->start();

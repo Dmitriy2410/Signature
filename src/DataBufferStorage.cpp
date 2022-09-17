@@ -1,5 +1,5 @@
 #include "DataBufferStorage.h"
-#include "CommonUtils.h"
+#include "Logger.h"
 
 std::mutex DataBufferStorage::bufferMutex;
 
@@ -8,7 +8,7 @@ DataBufferStorage::DataBufferStorage(uint64_t singleBufferSize, uint64_t maxBuff
     maxBufferCount(maxBufferCount),
     freeBufferId(0)
 {
-    writeLog("DataBufferStorage: Init: " + std::to_string(maxBufferCount) + " buffers with " + std::to_string(singleBufferSize) + " bytes");
+    Logger::writeLog("DataBufferStorage: Init: " + std::to_string(maxBufferCount) + " buffers with " + std::to_string(singleBufferSize) + " bytes");
 
     buffer.reserve(maxBufferCount);
     for (uint64_t id = 0; id < maxBufferCount; ++id) {
@@ -29,6 +29,16 @@ DataBufferStorage::SingleBufferPtr DataBufferStorage::getBuffer(uint64_t id) con
     std::scoped_lock lg(bufferMutex);
     auto bufferData = buffer[id];
     return bufferData;
+}
+
+uint64_t DataBufferStorage::getIdDiff(uint64_t id) const
+{
+    std::scoped_lock lg(bufferMutex);
+    if (freeBufferId < id) {
+        return maxBufferCount - id + freeBufferId;
+    } else {
+        return freeBufferId - id;
+    }
 }
 
 void DataBufferStorage::rotateFreeBufferId()

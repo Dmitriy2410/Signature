@@ -3,6 +3,8 @@
 #include "Logger.h"
 #include <functional>
 #include <memory>
+#include <cstring>
+#include <optional>
 
 static void writeHelp()
 {
@@ -14,12 +16,6 @@ static void writeHelp()
     Logger::writeLog("-s - block size (512b - 10Mb)");
     Logger::writeLog("-t - thread count (Default: 15)");
     Logger::writeLog("-d - Enable debug mode");
-}
-
-static void parseArg(const std::string& arg, const std::string& argValue, const std::string& argName, const std::function<void(const std::string&)>& func) {
-    if (arg == argName) {
-        func(argValue);
-    }
 }
 
 static const uint64_t MEGABYTE_MULTIPLIER = 1024 * 1024;
@@ -51,16 +47,73 @@ static uint64_t parseBlockSize(const std::string& argValue)
     return 0;
 }
 
-static SignatureParams parseParams(int argc, char** argv)
+enum class ArgType {
+    None,
+    Input,
+    Output,
+    BlockSize,
+    DebugMode,
+    ThreadCount
+};
+
+ArgType parseArgType(char* arg)
+{
+    if (strcmp(arg, "-i") == 0) {
+        return ArgType::Input;
+    } else if (strcmp(arg, "-o") == 0) {
+        return ArgType::Output;
+    } else if (strcmp(arg, "-s") == 0) {
+        return ArgType::BlockSize;
+    } else if (strcmp(arg, "-d") == 0) {
+        return ArgType::DebugMode;
+    } else if (strcmp(arg, "-t") == 0) {
+        return ArgType::ThreadCount;
+    }
+    return ArgType::None;
+}
+
+static bool parseArg(ArgType type, const std::string& argValue, SignatureParams& params) {
+    switch (type) {
+        case ArgType::Input:
+            params.inputPath = argValue;
+            break;
+        case ArgType::Output:
+            params.outputPath = argValue;
+            break;
+        case ArgType::BlockSize:
+            params.blockSize = parseBlockSize(argValue);
+            break;
+        case ArgType::ThreadCount:
+            params.threadCount = std::stoi(argValue);
+            break;
+        case ArgType::DebugMode:
+        default:
+            Logger::writeLog("Unexpected state");
+            return false;
+    }
+
+    return true;
+}
+
+static std::optional<SignatureParams> parseParams(int argc, char** argv)
 {
     SignatureParams params;
-    for (int i = 1; i < argc - 1; i = i+2) {
-        auto arg = argv[i];
-        auto argValue = argv[i+1];
-        parseArg(arg, argValue, "-i", [&params] (auto& argValue) { params.inputPath = argValue; });
-        parseArg(arg, argValue, "-o", [&params] (auto& argValue) { params.outputPath = argValue; });
-        parseArg(arg, argValue, "-s", [&params] (auto& argValue) { params.blockSize = parseBlockSize(argValue); });
-        parseArg(arg, argValue, "-d", [&params] (auto& argValue) { params.debugMode = argValue == "1"; });
+    auto argType = ArgType::None;
+    for (int i = 1; i < argc; ++i) {
+        if (argType == ArgType::None) {
+            argType = parseArgType(argv[i]);
+            if (argType == ArgType::None) {
+                Logger::writeLog("Unexpected argument: " + std::string(argv[i]));
+                return {};
+            }
+            if (argType == ArgType::DebugMode) {
+                params.debugMode = true;
+                argType = ArgType::None;
+            }
+        } else {
+            parseArg(argType, argv[i], params);
+            argType = ArgType::None;
+        }
     }
     return params;
 }
@@ -79,7 +132,11 @@ static const int MAX_THREAD_COUNT = 100;
 
 int main(int argc, char** argv)
 {
-    auto params = parseParams(argc, argv);
+    auto paramsOpt = parseParams(argc, argv);
+    if (!paramsOpt.has_value()) {
+        return -1;
+    }
+    auto params = *paramsOpt;
 
     if (!checkParam(params.inputPath.empty(), "Invalid input file path") ||
             !checkParam(params.outputPath.empty(), "Invalid output file path") ||

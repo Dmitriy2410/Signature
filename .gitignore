@@ -6,3 +6,5 @@
 *.pro.user*
 build-*
 .~lock*
+.idea/
+cmake-build-debug/

@@ -18,7 +18,7 @@ public:
 
     size_t getMaxMapSize() const;
 
-    bool isErrorOccured() const;
+    bool isErrorOccurred() const;
 
 private:
     std::ofstream outputFile;
@@ -26,7 +26,7 @@ private:
     static std::mutex outputMutex;
     std::map<uint64_t, std::string> outOfOrderStrings;
     size_t maxMapSize;
-    bool errorOccured;
+    bool errorOccurred;
 
     void writeOutput(const std::string &str);
 

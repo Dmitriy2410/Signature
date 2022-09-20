@@ -31,8 +31,6 @@ private:
 
     std::unordered_set<uint64_t> freeBufferIds;
 
-    void rotateFreeBufferId();
-
     void fillNewBuffers(size_t from, size_t to);
 };
 

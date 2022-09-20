@@ -3,11 +3,6 @@
 #include "Logger.h"
 #include "DataBufferStorage.h"
 #include "MD5.h"
-#include <fstream>
-#include <memory>
-#include <unordered_map>
-#include <thread>
-#include <cassert>
 #include <boost/asio/thread_pool.hpp>
 #include <boost/asio.hpp>
 #include <ctime>
@@ -46,9 +41,18 @@ static void updateMaxThreadCount() {
 SignatureAlgorithm::SignatureAlgorithm(const SignatureParams &params) :
     params(params),
     debugMode(params.debugMode),
-    errorOccured(false)
+    errorOccurred(false)
 {
 
+}
+
+static void finish(bool success)
+{
+    if (success) {
+        Logger::writeLog("SUCCESS");
+    } else {
+        Logger::writeLog("Error occurred");
+    }
 }
 
 void SignatureAlgorithm::start()
@@ -56,11 +60,13 @@ void SignatureAlgorithm::start()
     std::ifstream inputFile(params.inputPath, std::ios::in|std::ios::binary);
     if (!inputFile.is_open()) {
         Logger::writeLog("Input file open error");
+        errorOccurred = true;
         finish(false);
         return;
     }
     OutputModule outputModule;
     if (!outputModule.init(params.outputPath)) {
+        errorOccurred = true;
         finish(false);
         return;
     }
@@ -79,35 +85,35 @@ void SignatureAlgorithm::start()
     clock_t prevReadClock = clock();
     std::map<uint64_t, uint64_t> differences;
     while (!inputFile.eof()) {
-        if (errorOccured) {
+        if (errorOccurred) {
             break;
         }
         auto [dataBuffer, bufferId] = storage.getFreeBuffer();
         uint64_t readSize;
         auto prevStartReadTime = clock() - prevReadClock;
         prevReadClock = clock();
-        auto readDuration = Measurement::measureFunc([&readSize, &inputFile, &dataBuffer, this]
+        auto readDuration = Measurement::measureFunc([&readSize, &inputFile, dataBuf = dataBuffer, this]
         {
-            readSize = inputFile.read(dataBuffer->data(), params.blockSize).gcount();
+            readSize = inputFile.read(dataBuf->data(), params.blockSize).gcount();
             if (inputFile.eof()) {
-                std::fill(dataBuffer->begin() + readSize, dataBuffer->end(), 0);
+                std::fill(dataBuf->begin() + readSize, dataBuf->end(), 0);
             }
         });
         if (readSize == 0) {
-            Logger::writeLog("Input error occured");
-            errorOccured = true;
+            Logger::writeLog("Input error occurred");
+            errorOccurred = true;
             break;
         }
         if (debugMode) {
             totalSize += readSize;
             Logger::writeLog("Block: " + std::to_string(currentBlock) +
                              " read: " + std::to_string(readSize) +
-                             " total: " + std::to_string(totalSize / (1024.0 * 1024.0 * 1024.0)) + "Gb" +
+                             " total: " + std::to_string(static_cast<double>(totalSize) / (1024.0 * 1024.0 * 1024.0)) + "Gb" +
                              " time: " + std::to_string(readDuration) +
                              " Prev start read time: " + std::to_string(prevStartReadTime));
         }
-        boost::asio::post(pool, [&storage, &outputModule, this, bufferId, &differences, currentBlock] {
-            if (errorOccured) {
+        boost::asio::post(pool, [&storage, &outputModule, this, bufferId = bufferId, &differences, currentBlock] {
+            if (errorOccurred) {
                 return;
             }
             if (debugMode) {
@@ -115,14 +121,14 @@ void SignatureAlgorithm::start()
                 updateMaxThreadCount();
             }
             std::string md5Result;
-            auto funcDuration = Measurement::measureFunc([&storage, &outputModule, &bufferId, &md5Result, &currentBlock, this]
+            auto funcDuration = Measurement::measureFunc([&storage, &outputModule, &bufferId, &md5Result, &currentBlock]
             {
                 md5Result = md5(storage.getBuffer(bufferId)->data());
                 storage.releaseBuffer(bufferId);
-                outputModule.writeStr(currentBlock, std::move(md5Result));
+                outputModule.writeStr(currentBlock, md5Result);
             });
-            if (outputModule.isErrorOccured()) {
-                errorOccured = true;
+            if (outputModule.isErrorOccurred()) {
+                errorOccurred = true;
             }
 
             if (debugMode) {
@@ -154,14 +160,5 @@ void SignatureAlgorithm::start()
         Logger::writeLog("All blocks count: " + std::to_string(currentBlock));
     }
 
-    finish(!errorOccured);
-}
-
-void SignatureAlgorithm::finish(bool success)
-{
-    if (success) {
-        Logger::writeLog("SUCCESS");
-    } else {
-        Logger::writeLog("Error occured");
-    }
+    finish(!errorOccurred);
 }

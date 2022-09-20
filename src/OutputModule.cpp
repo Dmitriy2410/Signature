@@ -6,7 +6,7 @@ std::mutex OutputModule::outputMutex;
 OutputModule::OutputModule() :
     expectedId(0),
     maxMapSize(0),
-    errorOccured(false)
+    errorOccurred(false)
 {
 
 }
@@ -47,10 +47,10 @@ size_t OutputModule::getMaxMapSize() const
     return maxMapSize;
 }
 
-bool OutputModule::isErrorOccured() const
+bool OutputModule::isErrorOccurred() const
 {
     std::scoped_lock lg(outputMutex);
-    return errorOccured;
+    return errorOccurred;
 }
 
 void OutputModule::writeOutput(const std::string &str)
@@ -58,8 +58,8 @@ void OutputModule::writeOutput(const std::string &str)
     outputFile << str << "\n";
     ++expectedId;
     if (outputFile.fail()) {
-        Logger::writeLog("OutputModule: Output error occured: " + std::string(strerror(errno)));
-        errorOccured = true;
+        Logger::writeLog("OutputModule: Output error occurred: " + std::string(strerror(errno)));
+        errorOccurred = true;
     }
 }
 

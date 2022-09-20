@@ -9,7 +9,6 @@
 #include <boost/asio/thread_pool.hpp>
 #include <ctime>
 
-std::mutex diffMutex;
 std::mutex threadCountMutex;
 
 uint32_t maxThreadCount = 0;
@@ -33,12 +32,10 @@ static void updateMaxThreadCount()
     maxThreadCount = std::max(threadCount, maxThreadCount);
 }
 
-SignatureAlgorithm::SignatureAlgorithm(const SignatureParams &params)
-    : params(params)
-    , debugMode(false)
-    // todo: вернуть
-    //    , debugMode(params.debugMode)
-    , errorOccurred(false)
+SignatureAlgorithm::SignatureAlgorithm(const SignatureParams &params) :
+    params(params),
+    debugMode(params.debugMode),
+    errorOccurred(false)
 {}
 
 static void finish(bool success)
@@ -74,7 +71,6 @@ void SignatureAlgorithm::start()
     uint64_t currentBlock = 0;
     uint64_t totalSize = 0;
     clock_t prevReadClock = clock();
-    std::map<uint64_t, uint64_t> differences;
     while (!inputModule.eof()) {
         if (errorOccurred) {
             break;
@@ -101,21 +97,21 @@ void SignatureAlgorithm::start()
                 + ", total: "
                 + std::to_string(static_cast<double>(totalSize) / (1024.0 * 1024.0 * 1024.0)) + "Gb"
                 + ", ReadTime: " + std::to_string(readDuration)
-                + ", Time from previous read: " + std::to_string(prevStartReadTime));
+                + ", Time from previous read: " + std::to_string(prevStartReadTime)
+                + ", eof: " + std::to_string(inputModule.eof()));
         }
-        boost::asio::post(
-            pool, [&storage, &outputModule, this, bufferId = bufferId, &differences, currentBlock] {
-                if (errorOccurred) {
-                    return;
-                }
-                if (debugMode) {
-                    increaseThreadCount();
-                    updateMaxThreadCount();
-                }
-                std::string md5Result;
-                auto funcDuration = Measurement::measureFunc(
-                    [&storage, &outputModule, &bufferId, &md5Result, &currentBlock] {
-                        md5Result = md5(storage.getBuffer(bufferId)->data());
+        boost::asio::post(pool, [&storage, &outputModule, this, bufferId = bufferId, currentBlock] {
+            if (errorOccurred) {
+                return;
+            }
+            if (debugMode) {
+                increaseThreadCount();
+                updateMaxThreadCount();
+            }
+            std::string md5Result;
+            auto funcDuration = Measurement::measureFunc(
+                [&storage, &outputModule, &bufferId, &md5Result, &currentBlock] {
+                    md5Result = md5(storage.getBuffer(bufferId)->data());
                         storage.releaseBuffer(bufferId);
                         outputModule.writeStr(currentBlock, md5Result);
                     });
@@ -126,12 +122,9 @@ void SignatureAlgorithm::start()
                 if (debugMode) {
                     Logger::writeLog("MD5: Block: " + std::to_string(bufferId) + ", result: "
                                      + md5Result + ", MD5Time: " + std::to_string(funcDuration));
-
-                    std::scoped_lock dm(diffMutex);
-                    differences[storage.getIdDiff()]++;
                     decreaseThreadCount();
-                }
-            });
+            }
+        });
         ++currentBlock;
     }
 
@@ -140,15 +133,9 @@ void SignatureAlgorithm::start()
     inputModule.close();
     outputModule.close();
 
-    if (debugMode) {
-        std::for_each(differences.begin(), differences.end(), [](auto &itr) {
-            Logger::writeLog(" Block difference: " + std::to_string(itr.first) + " - "
-                             + std::to_string(itr.second));
-        });
-        Logger::writeLog("Max threads: " + std::to_string(maxThreadCount));
-        Logger::writeLog("Max output size: " + std::to_string(outputModule.getMaxMapSize()));
-        Logger::writeLog("All blocks count: " + std::to_string(currentBlock));
-    }
+    Logger::writeDebug("Max threads: " + std::to_string(maxThreadCount));
+    Logger::writeDebug("Max output size: " + std::to_string(outputModule.getMaxMapSize()));
+    Logger::writeDebug("All blocks count: " + std::to_string(currentBlock));
 
     finish(!errorOccurred);
 }

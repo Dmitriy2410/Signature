@@ -1,8 +1,8 @@
 #include "InputModule.h"
 #include "Utility/Logger.h"
 
-InputModule::InputModule()
-    : errorOccurred(false)
+InputModule::InputModule() :
+    errorOccurred(false)
 {}
 
 bool InputModule::init(const std::string &filePath)
@@ -21,9 +21,9 @@ bool InputModule::init(const std::string &filePath)
     return true;
 }
 
-bool InputModule::eof() const
+bool InputModule::eof()
 {
-    return inputFile.eof();
+    return inputFile.peek() == EOF;
 }
 
 uint32_t InputModule::read(char *buffer, uint32_t blockSize)

@@ -4,10 +4,10 @@
 
 std::mutex OutputModule::outputMutex;
 
-OutputModule::OutputModule()
-    : expectedId(0)
-    , maxMapSize(0)
-    , errorOccurred(false)
+OutputModule::OutputModule() :
+    expectedId(0),
+    maxMapSize(0),
+    errorOccurred(false)
 {}
 
 bool OutputModule::init(const std::string &outputPath)

@@ -3,9 +3,9 @@
 
 std::mutex DataBufferStorage::bufferMutex;
 
-DataBufferStorage::DataBufferStorage(uint32_t singleBufferSize, uint32_t initialBufferCount)
-    : singleBufferSize(singleBufferSize)
-    , bufferCount(initialBufferCount)
+DataBufferStorage::DataBufferStorage(uint32_t singleBufferSize, uint32_t initialBufferCount) :
+    singleBufferSize(singleBufferSize),
+    bufferCount(initialBufferCount)
 {
     Logger::writeDebug("DataBufferStorage::Init " + std::to_string(initialBufferCount)
                        + " buffers with " + std::to_string(singleBufferSize) + " bytes");

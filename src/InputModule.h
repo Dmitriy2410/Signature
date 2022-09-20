@@ -9,7 +9,7 @@ public:
     InputModule();
     bool init(const std::string &filePath);
     uint32_t read(char *buffer, uint32_t blockSize);
-    bool eof() const;
+    bool eof();
     void close();
 
     bool isErrorOccurred() const;

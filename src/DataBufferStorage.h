@@ -1,13 +1,14 @@
 #ifndef DATABUFFERSTORAGE_H
 #define DATABUFFERSTORAGE_H
 
-#include <mutex>
-#include <vector>
-#include <memory>
 #include <atomic>
+#include <memory>
+#include <mutex>
 #include <unordered_set>
+#include <vector>
 
-class DataBufferStorage {
+class DataBufferStorage
+{
 public:
     using SingleBuffer = std::vector<char>;
     using SingleBufferPtr = std::shared_ptr<SingleBuffer>;
@@ -15,9 +16,11 @@ public:
     explicit DataBufferStorage(uint64_t singleBufferSize, uint64_t initialBufferCount);
 
     // Получение свободного буфера. Если все буферы заняты, количество буферов удваивается.
-    std::pair<SingleBufferPtr,uint64_t> getFreeBuffer();
+    std::pair<SingleBufferPtr, uint64_t> getFreeBuffer();
+
     // Получение буфера с данными.
     SingleBufferPtr getBuffer(uint64_t id) const;
+
     // Освобождение буфера, после чего буфер считается свободным и может быть получен в getFreeBuffer.
     void releaseBuffer(uint64_t id);
 

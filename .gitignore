@@ -8,3 +8,4 @@ build-*
 .~lock*
 .idea/
 cmake-build-debug/
+format.sh

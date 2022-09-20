@@ -3,13 +3,12 @@
 #include <cstring>
 
 std::mutex OutputModule::outputMutex;
-OutputModule::OutputModule() :
-    expectedId(0),
-    maxMapSize(0),
-    errorOccurred(false)
-{
 
-}
+OutputModule::OutputModule()
+    : expectedId(0)
+    , maxMapSize(0)
+    , errorOccurred(false)
+{}
 
 bool OutputModule::init(const std::string &outputPath)
 {
@@ -58,7 +57,8 @@ void OutputModule::writeOutput(const std::string &str)
     outputFile << str << "\n";
     ++expectedId;
     if (outputFile.fail()) {
-        Logger::writeLog("OutputModule: Output error occurred: " + std::string(strerror(errno)));
+        Logger::writeLog("OutputModule: Output error occurred: bad:"
+                         + std::to_string(outputFile.bad()) + "fail:");
         errorOccurred = true;
     }
 }

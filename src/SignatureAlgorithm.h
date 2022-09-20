@@ -7,7 +7,7 @@
 class SignatureAlgorithm
 {
 public:
-    explicit SignatureAlgorithm(const SignatureParams& params);
+    explicit SignatureAlgorithm(const SignatureParams &params);
 
     void start();
 

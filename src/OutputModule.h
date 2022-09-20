@@ -1,18 +1,19 @@
 #ifndef OUTPUTMODULE_H
 #define OUTPUTMODULE_H
 
-#include <string>
 #include <fstream>
-#include <mutex>
 #include <map>
+#include <mutex>
+#include <string>
 
 class OutputModule
 {
 public:
     OutputModule();
-    bool init(const std::string& outputPath);
 
-    void writeStr(uint64_t bufferId, const std::string& str);
+    bool init(const std::string &outputPath);
+
+    void writeStr(uint64_t bufferId, const std::string &str);
 
     void close();
 

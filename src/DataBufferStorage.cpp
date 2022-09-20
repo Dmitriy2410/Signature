@@ -3,9 +3,9 @@
 
 std::mutex DataBufferStorage::bufferMutex;
 
-DataBufferStorage::DataBufferStorage(uint64_t singleBufferSize, uint64_t initialBufferCount) :
-    singleBufferSize(singleBufferSize),
-    bufferCount(initialBufferCount)
+DataBufferStorage::DataBufferStorage(uint64_t singleBufferSize, uint64_t initialBufferCount)
+    : singleBufferSize(singleBufferSize)
+    , bufferCount(initialBufferCount)
 {
     buffer.reserve(bufferCount);
     fillNewBuffers(0, bufferCount);
@@ -23,7 +23,7 @@ std::pair<DataBufferStorage::SingleBufferPtr, uint64_t> DataBufferStorage::getFr
     }
     auto freeBufferId = *freeBufferIds.begin();
     freeBufferIds.erase(freeBufferIds.begin());
-    std::pair<SingleBufferPtr,uint64_t> freeBuffer = {buffer[freeBufferId], freeBufferId};
+    std::pair<SingleBufferPtr, uint64_t> freeBuffer = {buffer[freeBufferId], freeBufferId};
     return freeBuffer;
 }
 

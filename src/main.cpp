@@ -139,6 +139,9 @@ int main(int argc, char **argv)
                            + ")")) {
         return -1;
     }
+    if (params.debugMode) {
+        Logger::setupDebugMode();
+    }
 
     Logger::writeLog("Start algorithm");
     Logger::writeLog("input: " + params.inputPath);

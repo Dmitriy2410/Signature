@@ -1,7 +1,7 @@
 #include "Logger.h"
 #include <iostream>
 
-std::atomic_bool Logger::debugMode = true;
+std::atomic_bool Logger::debugMode = false;
 
 std::mutex Logger::logMutex;
 void Logger::writeLog(const std::string &msg)
@@ -15,4 +15,9 @@ void Logger::writeDebug(const std::string &msg)
     if (debugMode) {
         writeLog(msg);
     }
+}
+
+void Logger::setupDebugMode()
+{
+    debugMode = true;
 }

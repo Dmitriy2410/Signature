@@ -11,6 +11,8 @@ public:
     static void writeLog(const std::string &msg);
     static void writeDebug(const std::string &msg);
 
+    static void setupDebugMode();
+
 private:
     static std::mutex logMutex;
     static std::atomic_bool debugMode;

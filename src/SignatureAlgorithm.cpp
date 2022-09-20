@@ -1,9 +1,9 @@
 #include "SignatureAlgorithm.h"
 #include "DataBufferStorage.h"
 #include "InputModule.h"
-#include "MD5.h"
 #include "OutputModule.h"
 #include "Utility/Logger.h"
+#include "Utility/MD5.h"
 #include "Utility/Measurement.h"
 #include <boost/asio.hpp>
 #include <boost/asio/thread_pool.hpp>
@@ -112,17 +112,17 @@ void SignatureAlgorithm::start()
             auto funcDuration = Measurement::measureFunc(
                 [&storage, &outputModule, &bufferId, &md5Result, &currentBlock] {
                     md5Result = md5(storage.getBuffer(bufferId)->data());
-                        storage.releaseBuffer(bufferId);
-                        outputModule.writeStr(currentBlock, md5Result);
-                    });
-                if (outputModule.isErrorOccurred()) {
-                    errorOccurred = true;
-                }
+                    storage.releaseBuffer(bufferId);
+                    outputModule.writeStr(currentBlock, md5Result);
+                });
+            if (outputModule.isErrorOccurred()) {
+                errorOccurred = true;
+            }
 
-                if (debugMode) {
-                    Logger::writeLog("MD5: Block: " + std::to_string(bufferId) + ", result: "
-                                     + md5Result + ", MD5Time: " + std::to_string(funcDuration));
-                    decreaseThreadCount();
+            if (debugMode) {
+                Logger::writeLog("MD5: Block: " + std::to_string(bufferId) + ", result: "
+                                 + md5Result + ", MD5Time: " + std::to_string(funcDuration));
+                decreaseThreadCount();
             }
         });
         ++currentBlock;

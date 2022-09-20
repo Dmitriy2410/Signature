@@ -5,7 +5,6 @@ project(Signature)
 set(CMAKE_CXX_STANDARD 17)
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Werror")
 set(THREADS_PREFER_PTHREAD_FLAG ON)
-
 set(EXECUTABLE_OUTPUT_PATH "bin")
 
 find_package(Threads REQUIRED)

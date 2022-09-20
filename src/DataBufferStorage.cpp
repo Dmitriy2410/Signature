@@ -1,17 +1,19 @@
 #include "DataBufferStorage.h"
-#include "Logger.h"
+#include "Utility/Logger.h"
 
 std::mutex DataBufferStorage::bufferMutex;
 
-DataBufferStorage::DataBufferStorage(uint64_t singleBufferSize, uint64_t initialBufferCount)
+DataBufferStorage::DataBufferStorage(uint32_t singleBufferSize, uint32_t initialBufferCount)
     : singleBufferSize(singleBufferSize)
     , bufferCount(initialBufferCount)
 {
+    Logger::writeDebug("DataBufferStorage::Init " + std::to_string(initialBufferCount)
+                       + " buffers with " + std::to_string(singleBufferSize) + " bytes");
     buffer.reserve(bufferCount);
     fillNewBuffers(0, bufferCount);
 }
 
-std::pair<DataBufferStorage::SingleBufferPtr, uint64_t> DataBufferStorage::getFreeBuffer()
+std::pair<DataBufferStorage::SingleBufferPtr, uint32_t> DataBufferStorage::getFreeBuffer()
 {
     std::scoped_lock lg(bufferMutex);
     if (freeBufferIds.empty()) {
@@ -19,36 +21,35 @@ std::pair<DataBufferStorage::SingleBufferPtr, uint64_t> DataBufferStorage::getFr
         buffer.reserve(newBufferCount);
         fillNewBuffers(bufferCount, newBufferCount);
         bufferCount = newBufferCount;
-        Logger::writeLog("NewBufferCount: " + std::to_string(bufferCount));
+        Logger::writeDebug("NewBufferCount: " + std::to_string(bufferCount));
     }
     auto freeBufferId = *freeBufferIds.begin();
     freeBufferIds.erase(freeBufferIds.begin());
-    std::pair<SingleBufferPtr, uint64_t> freeBuffer = {buffer[freeBufferId], freeBufferId};
-    return freeBuffer;
+    return {buffer[freeBufferId], freeBufferId};
 }
 
 void DataBufferStorage::fillNewBuffers(size_t from, size_t to)
 {
-    for (uint64_t id = from; id < to; ++id) {
+    for (auto id = from; id < to; ++id) {
         buffer.push_back(std::make_shared<SingleBuffer>(singleBufferSize));
         freeBufferIds.insert(id);
     }
 }
 
-DataBufferStorage::SingleBufferPtr DataBufferStorage::getBuffer(uint64_t id) const
+DataBufferStorage::SingleBufferPtr DataBufferStorage::getBuffer(uint32_t id) const
 {
     std::scoped_lock lg(bufferMutex);
     auto bufferData = buffer[id];
     return bufferData;
 }
 
-void DataBufferStorage::releaseBuffer(uint64_t id)
+void DataBufferStorage::releaseBuffer(uint32_t id)
 {
     std::scoped_lock lg(bufferMutex);
     freeBufferIds.insert(id);
 }
 
-uint64_t DataBufferStorage::getIdDiff() const
+uint32_t DataBufferStorage::getIdDiff() const
 {
     std::scoped_lock lg(bufferMutex);
     return bufferCount - freeBufferIds.size();

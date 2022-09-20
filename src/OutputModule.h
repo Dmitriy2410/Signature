@@ -13,7 +13,7 @@ public:
 
     bool init(const std::string &outputPath);
 
-    void writeStr(uint64_t bufferId, const std::string &str);
+    void writeStr(uint32_t bufferId, const std::string &str);
 
     void close();
 
@@ -23,9 +23,9 @@ public:
 
 private:
     std::ofstream outputFile;
-    uint64_t expectedId;
+    uint32_t expectedId;
     static std::mutex outputMutex;
-    std::map<uint64_t, std::string> outOfOrderStrings;
+    std::map<uint32_t, std::string> outOfOrderStrings;
     size_t maxMapSize;
     bool errorOccurred;
 

@@ -1,5 +1,5 @@
 #include "OutputModule.h"
-#include "Logger.h"
+#include "Utility/Logger.h"
 #include <cstring>
 
 std::mutex OutputModule::outputMutex;
@@ -22,7 +22,7 @@ bool OutputModule::init(const std::string &outputPath)
     return true;
 }
 
-void OutputModule::writeStr(uint64_t bufferId, const std::string &str)
+void OutputModule::writeStr(uint32_t bufferId, const std::string &str)
 {
     std::scoped_lock lg(outputMutex);
 

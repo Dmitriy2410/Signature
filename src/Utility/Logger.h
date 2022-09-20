@@ -1,9 +1,9 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
+#include <atomic>
 #include <mutex>
 #include <string>
-#include <atomic>
 
 class Logger
 {

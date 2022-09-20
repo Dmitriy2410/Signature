@@ -1,24 +1,13 @@
 #include "SignatureAlgorithm.h"
 #include "DataBufferStorage.h"
-#include "Logger.h"
+#include "InputModule.h"
 #include "MD5.h"
 #include "OutputModule.h"
+#include "Utility/Logger.h"
+#include "Utility/Measurement.h"
 #include <boost/asio.hpp>
 #include <boost/asio/thread_pool.hpp>
 #include <ctime>
-
-class Measurement
-{
-public:
-    static clock_t measureFunc(std::function<void()> &&func)
-    {
-        auto begTime = clock();
-        if (func) {
-            func();
-        }
-        return clock() - begTime;
-    }
-};
 
 std::mutex diffMutex;
 std::mutex threadCountMutex;
@@ -46,7 +35,9 @@ static void updateMaxThreadCount()
 
 SignatureAlgorithm::SignatureAlgorithm(const SignatureParams &params)
     : params(params)
-    , debugMode(params.debugMode)
+    , debugMode(false)
+    // todo: вернуть
+    //    , debugMode(params.debugMode)
     , errorOccurred(false)
 {}
 
@@ -61,15 +52,8 @@ static void finish(bool success)
 
 void SignatureAlgorithm::start()
 {
-    std::ifstream inputFile(params.inputPath, std::ios::in | std::ios::binary);
-    if (!inputFile.is_open()) {
-        Logger::writeLog("Input file open error");
-        errorOccurred = true;
-        finish(false);
-        return;
-    }
-    if (inputFile.peek() == std::ifstream::traits_type::eof()) {
-        Logger::writeLog("Input file is empty");
+    InputModule inputModule;
+    if (!inputModule.init(params.inputPath)) {
         errorOccurred = true;
         finish(false);
         return;
@@ -81,10 +65,8 @@ void SignatureAlgorithm::start()
         return;
     }
 
-    uint64_t initialBufferCount = params.threadCount;
+    uint32_t initialBufferCount = params.threadCount;
 
-    Logger::writeDebug("DataBufferStorage: Init: " + std::to_string(initialBufferCount)
-                        + " buffers with " + std::to_string(params.blockSize) + " bytes");
     DataBufferStorage storage(params.blockSize, initialBufferCount);
 
     boost::asio::thread_pool pool(params.threadCount);
@@ -93,23 +75,22 @@ void SignatureAlgorithm::start()
     uint64_t totalSize = 0;
     clock_t prevReadClock = clock();
     std::map<uint64_t, uint64_t> differences;
-    while (!inputFile.eof()) {
+    while (!inputModule.eof()) {
         if (errorOccurred) {
             break;
         }
         auto [dataBuffer, bufferId] = storage.getFreeBuffer();
-        uint64_t readSize;
+        uint32_t readSize;
         auto prevStartReadTime = clock() - prevReadClock;
         prevReadClock = clock();
         auto readDuration = Measurement::measureFunc(
-            [&readSize, &inputFile, dataBuf = dataBuffer, this] {
-                readSize = inputFile.read(dataBuf->data(), params.blockSize).gcount();
-                if (inputFile.eof()) {
+            [&readSize, &inputModule, dataBuf = dataBuffer, this] {
+                readSize = inputModule.read(dataBuf->data(), params.blockSize);
+                if (inputModule.eof()) {
                     std::fill(dataBuf->begin() + readSize, dataBuf->end(), 0);
                 }
             });
-        if (readSize == 0) {
-            Logger::writeLog("Input error occurred");
+        if (inputModule.isErrorOccurred()) {
             errorOccurred = true;
             break;
         }
@@ -156,7 +137,7 @@ void SignatureAlgorithm::start()
 
     pool.join();
 
-    inputFile.close();
+    inputModule.close();
     outputModule.close();
 
     if (debugMode) {

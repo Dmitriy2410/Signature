@@ -1,6 +1,6 @@
-#include "Logger.h"
 #include "SignatureAlgorithm.h"
 #include "SignatureParams.h"
+#include "Utility/Logger.h"
 #include <cstring>
 #include <functional>
 #include <memory>
@@ -18,11 +18,11 @@ static void writeHelp()
     Logger::writeLog("-d - Enable debug mode");
 }
 
-static const uint64_t MEGABYTE_MULTIPLIER = 1024 * 1024;
+static const uint32_t MEGABYTE_MULTIPLIER = 1024 * 1024;
 
-static uint64_t parseBlockSize(const std::string &argValue)
+static uint32_t parseBlockSize(const std::string &argValue)
 {
-    static const uint64_t DEFAULT_BLOCK_SIZE = 1 * MEGABYTE_MULTIPLIER; // bytes
+    static const uint32_t DEFAULT_BLOCK_SIZE = 1 * MEGABYTE_MULTIPLIER; // bytes
 
     auto unitItr = std::find_if(argValue.begin(), argValue.end(), [](auto s) {
         return !::isdigit(s);

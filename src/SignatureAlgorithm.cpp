@@ -150,10 +150,10 @@ void SignatureAlgorithm::start()
         ++currentBlock;
     }
 
+    pool.join();
+
     inputFile.close();
     outputModule.close();
-
-    pool.join();
 
     if (debugMode) {
         std::for_each(differences.begin(), differences.end(), [](auto &itr) {

@@ -12,6 +12,7 @@ OutputModule::OutputModule()
 
 bool OutputModule::init(const std::string &outputPath)
 {
+    Logger::writeDebug("OutputModule::init");
     std::scoped_lock lg(outputMutex);
     outputFile.open(outputPath, std::ios::out | std::ios::trunc);
     if (!outputFile.is_open()) {
@@ -36,6 +37,7 @@ void OutputModule::writeStr(uint64_t bufferId, const std::string &str)
 
 void OutputModule::close()
 {
+    Logger::writeDebug("OutputModule::close");
     std::scoped_lock lg(outputMutex);
     outputFile.close();
 }
@@ -57,8 +59,7 @@ void OutputModule::writeOutput(const std::string &str)
     outputFile << str << "\n";
     ++expectedId;
     if (outputFile.fail()) {
-        Logger::writeLog("OutputModule: Output error occurred: bad:"
-                         + std::to_string(outputFile.bad()) + "fail:");
+        Logger::writeLog("OutputModule: Output error occurred");
         errorOccurred = true;
     }
 }

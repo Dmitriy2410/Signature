@@ -1,6 +1,6 @@
 # .clang-format for Qt Creator
 #
-# This is for clang-format >= 5.0.
+# This is for clang-format >= 14
 #
 # The configuration below follows the Qt Creator Coding Rules [1] as closely as
 # possible. For documentation of the options, see [2].

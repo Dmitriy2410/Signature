@@ -32,12 +32,6 @@ static void updateMaxThreadCount()
     maxThreadCount = std::max(threadCount, maxThreadCount);
 }
 
-SignatureAlgorithm::SignatureAlgorithm(const SignatureParams &params) :
-    params(params),
-    debugMode(params.debugMode),
-    errorOccurred(false)
-{}
-
 static void finish(bool success)
 {
     if (success) {
@@ -46,6 +40,12 @@ static void finish(bool success)
         Logger::writeLog("Error occurred");
     }
 }
+
+SignatureAlgorithm::SignatureAlgorithm(const SignatureParams &params) :
+    params(params),
+    debugMode(params.debugMode),
+    errorOccurred(false)
+{}
 
 void SignatureAlgorithm::start()
 {
@@ -134,7 +134,8 @@ void SignatureAlgorithm::start()
     outputModule.close();
 
     Logger::writeDebug("Max threads: " + std::to_string(maxThreadCount));
-    Logger::writeDebug("Max output size: " + std::to_string(outputModule.getMaxMapSize()));
+    Logger::writeDebug("Max output module queue size: "
+                       + std::to_string(outputModule.getMaxMapSize()));
     Logger::writeDebug("All blocks count: " + std::to_string(currentBlock));
 
     finish(!errorOccurred);
